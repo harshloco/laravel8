@@ -13,7 +13,23 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        /**
+         * App Binding Containers
+         */
+        $classes = [
+            'Product'
+            ];
+
+        foreach ($classes as $class) {
+            $this->app->bind(
+                "App\Contracts\\${class}Repository",
+                "App\Repositories\\${class}Repository"
+            );
+        }
+
+        $this->app->bind(Client::class, function ($app, $parameters) {
+            return new Client($parameters[0]);
+        });
     }
 
     /**

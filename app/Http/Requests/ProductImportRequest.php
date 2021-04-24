@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-class VehicleImportRequest extends FormRequestWrapper
+class ProductImportRequest extends FormRequestWrapper
 {
     /**
      * Get the validation rules that apply to the request.
