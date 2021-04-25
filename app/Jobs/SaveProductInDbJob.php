@@ -4,7 +4,6 @@
 namespace App\Jobs;
 
 use App\Contracts\ProductRepository;
-use App\Jobs\Job;
 use Illuminate\Support\Facades\Log;
 
 class SaveProductInDbJob extends Job
@@ -29,7 +28,7 @@ class SaveProductInDbJob extends Job
         try {
             $productRepo->create($this->data);
         } catch (Exception $e) {
-            Log::info('Saving product failed code-'.$this->data['code'].
+            Log::info(__CLASS__.' Saving product failed code-'.$this->data['code'].
                 'message '.$e->getMessage());
             return;
         }

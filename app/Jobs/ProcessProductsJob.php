@@ -2,19 +2,13 @@
 
 namespace App\Jobs;
 
-use App\Handlers\Vehicle\ImportHandler;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
+use App\Handlers\ImportHandler;
+use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
-class ProcessProductsJob implements ShouldQueue
+class ProcessProductsJob extends Job
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
     /**
      * @var string
      */
@@ -34,56 +28,35 @@ class ProcessProductsJob implements ShouldQueue
      * Execute the job.
      *
      * @return void
+     * @throws Exception
      */
-    public function handle()
+    public function handle(ImportHandler $importHandler)
     {
-        $local = Storage::disk('local');
-        $path = '/'.env('PRODUCT_IMPORT_DIR').'/'.$this->filename;
-        $fileExists = $local->exists($path);
+        try {
+            $local = Storage::disk('local');
+            $path = env('PRODUCT_IMPORT_DIR').'/'.$this->filename;
+            $fileExists = $local->exists($path);
 
-        if ($fileExists) {
-            $handle = fopen('./storage/app/files/'.$this->filename, "r");
-            // Optionally, you can keep the number of the line where
-            // the loop its currently iterating over
-            $lineNumber = 1;
-            $emptyRows = 0;
-
-            // Iterate over every line of the file
-            while (($raw_string = fgets($handle)) !== false) {
-
-                if($lineNumber == 1){ $lineNumber++; continue; }
-                // Increase the current line
-                $lineNumber++;
-
-                // Parse the raw csv string: "1, a, b, c"
-                // into an array: ['1', 'a', 'b', 'c']
-                $row = str_getcsv($raw_string, ',', '');
-
-                if (strlen(implode(' ', (str_replace(',', '', $row)))) <= 0) {
-                    //sanity check, if there are more than 10 empty rows in a sequence
-                    //stop reading the next rows
-                    if ($emptyRows == 10) {
-                        break;
-                    }
-                    // this is empty row. skip to next row
-                    $emptyRows++;
-                    continue;
-
+            if ($fileExists) {
+                try {
+                    $importHandler->import(
+                        $path,
+                        env('PRODUCT_IMPORT_DIR')
+                    );
+                } catch (Exception $e) {
+                    throw $e;
                 }
-
-
-                if(isset($row[0]) && isset($row[1]) && isset($row[2])) {
-                    $data = [
-                        'code' => trim($row[0]),
-                        'name' => trim($row[1]),
-                        'description' => trim($row[2])
-                    ];
-                    SaveProductInDbJob::dispatch($data);
-                }
+            } else {
+                Log::info(__CLASS__." file doesn't exists ".$this->filename);
+                throw new Exception("file doesn't exists ".$this->filename);
             }
-            fclose($handle);
-        } else {
-            Log::info("file doesn't exists ".$this->filename);
+        } catch (Exception $e) {
+            Log::warning('ProcessProductsJob failed attempt', [
+                'error' => $e->getMessage(),
+                'attempt' => $this->attempts(),
+            ]);
+
+            throw new FailedJobException($e->getMessage(), $e->getCode(), $e);
         }
     }
 }

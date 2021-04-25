@@ -17,7 +17,8 @@ class AppServiceProvider extends ServiceProvider
          * App Binding Containers
          */
         $classes = [
-            'Product'
+            'Product',
+            'Stock'
             ];
 
         foreach ($classes as $class) {

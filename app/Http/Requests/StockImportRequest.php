@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-class ProductImportRequest extends FormRequestWrapper
+class StockImportRequest extends FormRequestWrapper
 {
     /**
      * Get the validation rules that apply to the request.
@@ -13,6 +13,7 @@ class ProductImportRequest extends FormRequestWrapper
     {
         return [
             'file' => 'required|file|max:10000|mimes:csv,txt',
+
         ];
     }
 
