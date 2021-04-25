@@ -2,44 +2,146 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\ProductRepository;
+use App\Contracts\StockRepository;
 use App\Http\Requests\ProductImportRequest;
+use App\Http\Requests\ProductStockStoreRequest;
+use App\Http\Requests\ProductStoreRequest;
+use App\Http\Requests\ProductUpdateRequest;
+use App\Http\Requests\ViewAllProductsRequest;
 use App\Jobs\ProcessProductsJob;
 use App\Models\Product;
+use App\Models\Stock;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    public function index()
-    {
-        return $this->resolve('All Products',  Product::all());
+    /**
+     * @var ProductRepository
+     */
+    protected $productRepo;
+    /**
+     * @var StockRepository
+     */
+    protected $stockRepo;
+
+    public function __construct(ProductRepository $productRepo, StockRepository $stockRepo) {
+        $this->productRepo = $productRepo;
+        $this->stockRepo = $stockRepo;
     }
 
+    /**
+     * @param ViewAllProductsRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function index(ViewAllProductsRequest $request)
+    {
+        $params = $request->only('filters', 'sortBy', 'sortType', 'perPage', 'pagination', 'stock');
+
+        $products = $this->productRepo->getAll($params);
+        return $this->resolve('All Products',$products);
+    }
+
+    /**
+     * @param ViewAllProductsRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function showDetails($id): \Illuminate\Http\JsonResponse
+    {
+        $products = $this->productRepo->getAllProductDetails($id);
+        return $this->resolve('All Product Details', $products);
+    }
+
+    /**
+     * @param $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function show($id)
     {
-        return $this->resolve('Product found',   Product::find($id));
+        return $this->resolve('Product found', Product::findOrFail($id));
     }
 
-    public function store(Request $request)
+    /**
+     * @param ProductStoreRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function store(ProductStoreRequest $request)
     {
-        return Product::create($request->all());
+        try {
+            $payload = $request->only('code', 'name', 'description');
+            $product = $this->productRepo->create($payload);
+        } catch (Exception $e) {
+            return $this->reject($e->getMessage());
+        }
+        return $this->resolve('Product created successfully', $product);
     }
 
-    public function update(Request $request, $id)
+    /**
+     * @param ProductStockStoreRequest $request
+     * @param $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function storeStock(ProductStockStoreRequest $request, $id)
     {
-        $product = Product::findOrFail($id);
-        $product->update($request->all());
+        try {
+            $payload = $request->only('onHand', 'taken', 'productionDate');
+            $data = [
+                'on_hand' => $payload['onHand'] ?? 0,
+                'taken' => ($payload['taken']) ?? 0,
+                'production_date' => ($payload['productionDate']) ?
+                    Carbon::createFromFormat('d/m/Y', $payload['productionDate'])->startOfDay() :
+                    Carbon::now(),
+            ];
 
-        return $product;
+            $stock = Stock::updateOrCreate
+            (
+                ['product_id' => $id],
+                $data
+            );
+        } catch (Exception $e) {
+            return $this->reject($e->getMessage());
+        }
+        return $this->resolve('Stock created', $stock);
     }
 
+    /**
+     * @param ProductUpdateRequest $request
+     * @param $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(ProductUpdateRequest $request, $id)
+    {
+        try {
+            $payload = $request->only('code', 'name', 'description');
+            $product = Product::findOrFail($id);
+            $product->update($payload);
+        } catch (Exception $e) {
+            return $this->reject($e->getMessage());
+        }
+        return $this->resolve('Product updated successfully', $product);
+    }
+
+    /**
+     * @param Request $request
+     * @param $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function delete(Request $request, $id)
     {
-        $product = Product::findOrFail($id);
-        $product->delete();
-
-        return 204;
+        try {
+            $product = Product::findOrFail($id);
+            $product->delete();
+        } catch (Exception $e) {
+            return $this->reject($e->getMessage());
+        }
+        return $this->resolve('Product deleted successfully');
     }
 
+    /**
+     * @param ProductImportRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function import(ProductImportRequest $request)
     {
         if (!$request->hasFile('file')) {
@@ -54,7 +156,7 @@ class ProductController extends Controller
         // Save the file
         $file->storeAs(env('PRODUCT_IMPORT_DIR'), $fileName);
 
-        ProcessProductsJob::dispatch($fileName);
+        ProcessProductsJob::dispatch($fileName)->delay(now()->addSeconds(2));
 
         return $this->resolve('File saved');
     }

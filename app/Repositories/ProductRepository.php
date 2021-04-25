@@ -1,10 +1,10 @@
 <?php
 
-
 namespace App\Repositories;
 
 use App\Contracts\ProductRepository as ProductRepositoryContract;
 use App\Models\Product;
+use Illuminate\Support\Facades\Log;
 
 class ProductRepository implements ProductRepositoryContract
 {
@@ -21,8 +21,79 @@ class ProductRepository implements ProductRepositoryContract
         return Product::find($id);
     }
 
-    public function getAll()
+    public function getByCode(string $code)
     {
-        return Product::all();
+        return Product::whereCode($code)->first();
+    }
+    public function getAll(array $params = [])
+    {
+        $baseQuery =  Product::select('id','code');
+
+        $baseQuery = $this->add_filters($baseQuery, $params);
+        $baseQuery = $this->add_sort($baseQuery, $params);
+        if (isset($params['stock']) && $params['stock'] == 'true') {
+            $baseQuery = $baseQuery->leftjoin('stocks', 'products.id', '=', 'stocks.product_id')
+                ->select('products.id',
+                    'products.code',
+                    'stocks.on_hand',
+                    'stocks.taken'
+                );
+            unset($params['stock']);
+        }
+        return $this->with_pagination($baseQuery, $params);
+    }
+
+    public function getAllProductDetails(int $id)
+    {
+        $product =  Product::where('products.id', $id)
+            ->leftjoin('stocks', 'products.id', '=', 'stocks.product_id')
+            ->select('products.id',
+                'products.code',
+                'products.name',
+                'products.description',
+                'products.created_at',
+                'products.updated_at',
+                'stocks.on_hand',
+                'stocks.taken'
+            )->first();
+        return $product;
+    }
+
+    public function add_filters($baseQuery, $params)
+    {
+        $query = $baseQuery;
+        if (in_array("filters", $params) || array_key_exists("filters", $params)) {
+            $filters = $params["filters"];
+            foreach ($filters as $filter) {
+                $filter = json_decode($filter, true);
+                if (isset($filter["type"]) && $filter["type"] != "whereIn") {
+                    $query = $query->where($filter["field"], $filter["type"], $filter["value"]);
+                } else {
+                    $query = $query->whereIn($filter["field"], $filter["values"]);
+                }
+            }
+        }
+        return $query;
+    }
+
+    public function add_sort($baseQuery, $params)
+    {
+        $field = $params['sortBy'] ?? false;
+        $order = $params['sortType'] ?? 'asc';
+        if ($field) {
+            return $baseQuery->orderBy($field, $order);
+        };
+        return $baseQuery;
+    }
+
+    public function with_pagination($baseQuery, $params)
+    {
+        if (isset($params["pagination"]) && $params["pagination"]) {
+            if (isset($params["perPage"])) {
+                return $baseQuery->paginate($params["perPage"]);
+            }
+            return $baseQuery->paginate(10);
+        }
+        return $baseQuery->paginate(10);
     }
 }

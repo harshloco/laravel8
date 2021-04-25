@@ -3,12 +3,11 @@
 namespace App\Contracts;
 
 use App\Models\Product;
-use Illuminate\Support\Collection;
 
 interface ProductRepository
 {
     /**
-     * Creates the Account
+     * Creates the Product
      *
      * @param array $data
      *
@@ -17,7 +16,7 @@ interface ProductRepository
     public function create(array $data);
 
     /**
-     * List the Account by id
+     * List the Product by id
      *
      * @param int $id
      *
@@ -26,13 +25,26 @@ interface ProductRepository
     public function getById(int $id);
 
     /**
-     * List all the Accounts
+     * List the Product by code
      *
-     * @param void
+     * @param string $code
+     *
+     * @return Product|null
+     */
+    public function getByCode(string $code);
+
+    /**
+     * List all the Product
+     *
+     * @param array $params
+     * @return array
+     */
+    public function getAll(array $params = []);
+
+    /**
+     * List all the Product details
      *
      * @return array
      */
-    public function getAll();
-
-
+    public function getAllProductDetails(int $id);
 }
