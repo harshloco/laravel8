@@ -18,7 +18,6 @@ class ImportHandler
 
         try {
             $handle = fopen('./storage/app/'.$filePath, "r");
-            // Optionally, you can keep the number of the line where
             // the loop its currently iterating over
             $lineNumber = 1;
             $emptyRows = 0;
