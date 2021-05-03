@@ -40,6 +40,14 @@ class StockController extends Controller
         return 204;
     }
 
+    /**
+     *
+     * Comment - Can be improved further by reading the file in batches
+     * and sending the upsert request in batch to save time on DB operation
+     *
+     * @param StockImportRequest $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function import(StockImportRequest $request)
     {
         if (!$request->hasFile('file')) {

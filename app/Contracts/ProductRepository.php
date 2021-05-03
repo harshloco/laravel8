@@ -46,5 +46,5 @@ interface ProductRepository
      *
      * @return array
      */
-    public function getAllProductDetails(int $id);
+    public function getAllProductDetails(int $id, bool $stocks = false);
 }

@@ -41,8 +41,11 @@ class Stock extends Model
         'created_at'
     ];
 
-    public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function product()
     {
-        return $this->belongsTo(Product::class);
+        return $this->hasOne('App\Models\Product', 'id', 'product_id');
     }
 }

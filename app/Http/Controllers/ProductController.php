@@ -14,6 +14,7 @@ use App\Models\Product;
 use App\Models\Stock;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
@@ -32,6 +33,8 @@ class ProductController extends Controller
     }
 
     /**
+     * Comment - for filtering - package like czim/laravel-filter can be implemented
+     *
      * @param ViewAllProductsRequest $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -47,9 +50,11 @@ class ProductController extends Controller
      * @param ViewAllProductsRequest $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function showDetails($id): \Illuminate\Http\JsonResponse
+    public function showDetails(Request $request, $id): \Illuminate\Http\JsonResponse
     {
-        $products = $this->productRepo->getAllProductDetails($id);
+        $params = $request->only( 'stock');
+
+        $products = $this->productRepo->getAllProductDetails($id, $params['stock'] ?? false);
         return $this->resolve('All Product Details', $products);
     }
 
@@ -123,6 +128,7 @@ class ProductController extends Controller
     }
 
     /**
+     * Comment - To improve observer can be implemented to delete the stocks related to this product
      * @param Request $request
      * @param $id
      * @return \Illuminate\Http\JsonResponse

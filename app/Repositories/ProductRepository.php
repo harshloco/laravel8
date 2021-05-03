@@ -4,7 +4,6 @@ namespace App\Repositories;
 
 use App\Contracts\ProductRepository as ProductRepositoryContract;
 use App\Models\Product;
-use Illuminate\Support\Facades\Log;
 
 class ProductRepository implements ProductRepositoryContract
 {
@@ -32,30 +31,18 @@ class ProductRepository implements ProductRepositoryContract
         $baseQuery = $this->add_filters($baseQuery, $params);
         $baseQuery = $this->add_sort($baseQuery, $params);
         if (isset($params['stock']) && $params['stock'] == 'true') {
-            $baseQuery = $baseQuery->leftjoin('stocks', 'products.id', '=', 'stocks.product_id')
-                ->select('products.id',
-                    'products.code',
-                    'stocks.on_hand',
-                    'stocks.taken'
-                );
+            $baseQuery = $baseQuery->with('stocks');
             unset($params['stock']);
         }
         return $this->with_pagination($baseQuery, $params);
     }
 
-    public function getAllProductDetails(int $id)
+    public function getAllProductDetails(int $id, bool $stocks = false)
     {
-        $product =  Product::where('products.id', $id)
-            ->leftjoin('stocks', 'products.id', '=', 'stocks.product_id')
-            ->select('products.id',
-                'products.code',
-                'products.name',
-                'products.description',
-                'products.created_at',
-                'products.updated_at',
-                'stocks.on_hand',
-                'stocks.taken'
-            )->first();
+        $product =  Product::whereId($id)->first();
+        if($stocks){
+            $product= Product::find($id)->stocks()->get();
+        }
         return $product;
     }
 

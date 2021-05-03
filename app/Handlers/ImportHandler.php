@@ -61,7 +61,7 @@ class ImportHandler
                         $data = [
                             'product_code' => trim($row[0]),
                             'on_hand' => trim($row[1]),
-                            'production_date' => Carbon::createFromFormat('d/m/Y',trim($row[2]))->startOfDay()
+                            'production_date' => Carbon::createFromFormat('d/m/Y', trim($row[2]))->startOfDay()
                         ];
                         SaveStockInDb::dispatch($data)->delay(now()->addSeconds(2));
                     }

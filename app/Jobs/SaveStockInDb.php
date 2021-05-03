@@ -5,6 +5,7 @@ namespace App\Jobs;
 
 use App\Contracts\ProductRepository;
 use App\Models\Stock;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SaveStockInDb extends Job
@@ -32,9 +33,16 @@ class SaveStockInDb extends Job
             $product = $productRepo->getByCode($productCode);
 
             if ($product) {
-                Stock::updateOrCreate(
-                    ['product_id' => $product->id],
-                    $this->data);
+                $this->data =  $this->data + ['product_id' => $product->id];
+                unset( $this->data['product_code']);
+
+                DB::table('stocks')->upsert(
+                    [
+                        $this->data
+                    ],
+                    ['product_id', 'production_date'],
+                    ['on_hand' => DB::raw('stocks.on_hand + '. $this->data['on_hand'])]
+                );
             } else {
                 Log::info(__CLASS__.' product not found '.$productCode);
             }

@@ -15,6 +15,7 @@ class ProductStockStoreRequest extends FormRequestWrapper
             'onHand' => 'nullable|integer',
             'taken' => 'nullable|integer',
             'productionDate'  => 'nullable|date_format:d/m/Y',
+            'id' => 'exists:products,id',
         ];
     }
 }

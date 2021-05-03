@@ -49,10 +49,10 @@ class Product extends Model
     ];
 
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function stock()
+    public function stocks()
     {
-        return $this->hasOne(Stock::class);
+        return $this->hasMany('App\Models\Stock');
     }
 }
